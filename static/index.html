@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz</title>
+</head>
+    <body>
+        <h1>
+            SE 3316 Quiz
+        </h1>
+        <button id='quiz-btn'>START</button>
+        <div id='questionDiv'></div>
+    </body>
+    <script>
+
+        let quizButton = document.getElementById('quiz-btn');
+        quizButton.onclick = loadQuestions;
+
+        function loadQuestions()
+        {
+            quizButton.remove();
+
+            let x = new XMLHttpRequest();
+            x.onreadystatechange = displayQuestions;
+            
+            x.open('GET', '/questionsInJson',true);
+            x.send();
+        }
+
+        function displayQuestions()
+        {
+            if(this.readyState == 4 && this.status == 200)
+            {
+                let questionDiv = document.getElementById('questionDiv');
+                let questionList = JSON.parse(this.responseText);
+                let content = "";
+                let qIndex = 0;
+
+                content += '<form action=javascript:loadGrade()>';
+
+                for(q of questionList)
+                {
+                    content += '<p>' + q.stem + '</p>';
+
+                    let aIndex = 0;
+                    
+                    for(n of q.options)
+                    {
+                        content += '<input type="radio" id="answer ' + n + '" name="' + q.stem + '" onclick=checkAnswer(' + qIndex + ',' + aIndex + ')>';
+                        content += '<label for="answer ' + n + '">' + n + '</label></br>';
+                        aIndex++;
+                    
+                    }
+                    
+                    content += '</br><div id=\'answerDiv' + qIndex + '\' name=answers></div>';
+                    qIndex++;
+                }
+
+                content += '</br><input type="submit" value="Submit" id="submit-btn">';
+                content += '</form></br>';
+
+                content += '<div id=\'gradeDiv\'></div></br>';
+
+                questionDiv.innerHTML = content;
+            }
+        }
+
+        function checkAnswer(questionIndex,answerIndex)
+        {
+            let xReq = new XMLHttpRequest();
+            xReq.onreadystatechange = displayAnswer;
+            
+            xReq.open('GET', `/answersInJson?q=${questionIndex}&a=${answerIndex}`,true);
+            xReq.send();
+        }
+
+        function displayAnswer()
+        {
+            if(this.readyState == 4 && this.status == 200)
+            {
+                const answer = this.responseText.split(" ")
+
+                let answerDiv = document.getElementById('answerDiv' + answer[1]);
+                answerDiv.innerHTML = answer[0];
+            }
+        }
+
+        function loadGrade()
+        {
+            let submitButton = document.getElementById('submit-btn');
+            submitButton.remove();
+
+            let x = new XMLHttpRequest();
+            x.onreadystatechange = displayGrade;
+
+            x.open('GET', `/`, true);
+            x.send();
+        }
+
+        function  displayGrade()
+        {
+            if(this.readyState == 4 && this.status == 200)
+            {
+                let gradeDiv = document.getElementById('gradeDiv');
+                let correctNum = 0;
+                let totalNum = 0;
+
+                let answerButtons = document.getElementsByName("answers");
+                for(let i = 0; i < answerButtons.length; i++){
+                    
+                    if(answerButtons[i].innerHTML == "Correct!")
+                        correctNum++;
+                    totalNum++;
+                }
+
+                gradeDiv.innerHTML = "Your grade is: " + correctNum / totalNum * 100 + "%!";
+            }
+        }
+
+    </script>
+</html>
